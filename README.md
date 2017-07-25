@@ -17,4 +17,8 @@ If you want to try it out, you can either just take the code or clone/fork this 
 For deployment with Serverless, rename `handler.py.template` to `handler.py` and insert the name of the target autoscaling group. In `serverless.yaml` enter the correct AWS region and deploy the function with `serverless deploy`.
 
 Serverless creates the the function, the reeded IAM role and two SNS topics. To suspend and resume the autoscaling processes, create two Triggers in your Deployment settings - eg `suspendAutoscalingProcesses` and `resumeAutoscalingProcesses`.
-Trigger `suspendAutoscalingProcesses` whenever a Deployment starts and `resumeAutoscalingProcesses` whenever a Deployment is successful, stops or fails.
+Trigger `suspendAutoscalingProcesses` whenever a Deployment starts and `resumeAutoscalingProcesses` whenever a Deployment is successful, stops or fails so the processes are restored whenever a deployment stops, successful or unsuccesful.
+
+There isn't any error checking or notification/alerting (yet?) intead of logging to CloudWatch Logs, so be advised to check them out if you think something went wrong.
+
+So: Use at your own risk.
