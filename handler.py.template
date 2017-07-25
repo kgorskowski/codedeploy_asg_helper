@@ -1,0 +1,66 @@
+import json
+import boto3
+import time
+import json
+
+autoscaling = boto3.client('autoscaling')
+autoscaling_group_name = "#---YourAutoScalingGroupNameHere---#"
+processes_to_suspend = ["AZRebalance", "AlarmNotification", "ScheduledActions", "ReplaceUnhealthy"]
+
+def suspend_processes( autoscaling_group_name, processes_to_suspend ):
+
+    response = autoscaling.suspend_processes(
+        AutoScalingGroupName=autoscaling_group_name,
+        ScalingProcesses=processes_to_suspend
+    )
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        print("DEBUG: Autoscaling Processes suspended")
+        return True
+    else:
+        print("ERROR: Unable to suspend_processes on '" + autoscaling_group_name + "'")
+        return False
+
+def resume_processes( autoscaling_group_name, processes_to_suspend ):
+
+    response = autoscaling.resume_processes(
+        AutoScalingGroupName=autoscaling_group_name,
+        ScalingProcesses=processes_to_suspend
+    )
+    if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        print("DEBUG: Autoscaling Processes resumed")
+        return True
+    else:
+        print("ERROR: Unable to resume_processes on '" + autoscaling_group_name + "'")
+        return False
+
+def autoscale(event, context):
+    topic_arn = event['Records'][0]['Sns']['TopicArn']
+    print('Got Message from %s' % topic_arn)
+    if "suspendAutoscaling" in topic_arn:
+        item = suspend_processes(autoscaling_group_name, processes_to_suspend)
+        body = {
+        "message": "Suspending Autoscaling Processes",
+            "successful": item
+
+        }
+        response = {
+            "statusCode": 200,
+            "body": json.dumps(body)
+        }
+
+    elif "resumeAutoscaling" in topic_arn:
+        item = resume_processes(autoscaling_group_name, processes_to_suspend)
+        body = {
+        "message": "Resuming Autoscaling Processes",
+            "succesful": item
+
+        }
+        response = {
+            "statusCode": 200,
+            "body": json.dumps(body)
+        }
+    else:
+        print('Recieved Message from unknown SNS Topic %s - Exiting ' % topic_arn)
+        return False
+    print(response)
+    return response
