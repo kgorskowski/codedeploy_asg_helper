@@ -19,10 +19,6 @@ To control an Autoscaling Group with this Lambda function, it must have two Tags
 
 Anyways, if this is sufficient for you, create the Tags on your Autoscaling Group and the autoscaling operations will be suspended and resumed by Lambda.
 
-Additionally the Lambda now initially checks the Autoscaling Group for the minimal number of instances and resets the value after a deployment (no matter if succesful or failed).
-
-This should prevent the situation when the AWS helper decrement the minimal size of the group anf fail to reset the value.
-So after every deployment, the minimal size of your Autoscaling Group will be set to the value it had when the deployment started.
 
 Serverless creates the the function, the necessary IAM role and two SNS topics. To suspend and resume the autoscaling processes, create two Triggers in your Deployment settings - eg `suspendAutoscalingProcesses` and `resumeAutoscalingProcesses`.
 Trigger `suspendAutoscalingProcesses` whenever a Deployment starts and `resumeAutoscalingProcesses` whenever a Deployment is successful, stops or fails so the processes are restored whenever a deployment stops, successful or unsuccesful.
