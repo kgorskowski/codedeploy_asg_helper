@@ -38,6 +38,8 @@ provider:
       Action:
         -  "autoscaling:SuspendProcesses"
         -  "autoscaling:ResumeProcesses"
+        -  "autoscaling:Describe*"
+        -  "autoscaling:UpdateAutoscalingGroup"
       Resource:
           - "*"
 #    - Effect: "Allow"
