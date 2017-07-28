@@ -14,7 +14,7 @@ For easier deployment I really like the [Serverless Framework](https://serverles
 
 If you want to try it out, you can either just take the code or clone/fork this repository and change it to fit your needs.
 
-For deployment with Serverless, rename `handler.py.template` to `handler.py` ~~and insert the name of the target autoscaling group~~. I ditchend the hardcoded ASG Name for a Tag on the ASG. Con: Works right now just with one single affected Autoscaling Group. Not sure how to further improve this. Anyways, if this is sufficient for you, create a Tag on your Autoscaling Group Key name `AutomatedASGScript`- Value `true` and in `serverless.yaml` enter the correct AWS region and deploy the function with `serverless deploy`.
+For deployment with Serverless, clone the repo, enter the correct AWS region in the `serverless.yaml` and deploy the function with `serverless deploy`.~~rename `handler.py.template` to `handler.py` and insert the name of the target autoscaling group~~. I ditchend the hardcoded ASG Name for a Tag on the ASG. Con: Works right now just with one single affected Autoscaling Group. Not sure how to further improve this. Anyways, if this is sufficient for you, create a Tag on your Autoscaling Group Key name `AutomatedASGScript`- Value `true` and this ASG will be suspended and resumed by Lambda.
 
 Additionally the Lambda now initially checks the Autoscaling Group for the minimal number of instances and resets the value after a deployment (no matter if succesful or failed).
 
