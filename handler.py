@@ -1,12 +1,11 @@
 import json
 import boto3
-import time
 import json
-import os
+
 
 autoscaling = boto3.client('autoscaling')
+
 processes_to_suspend = ["AZRebalance", "AlarmNotification", "ScheduledActions", "ReplaceUnhealthy"]
-ASG_TAGS = { 'AutomatedASGScript': 'true' }
 
 def update_autoscaling_group(autoscaling_group, asg_min_size):
     print("Trying to reset %s to minimal size of %i instances" % (autoscaling_group, asg_min_size))
@@ -31,18 +30,26 @@ def get_asg_min_size(autoscaling_group):
     asg_min_size = int(response['AutoScalingGroups'][0]['MinSize'])
     return asg_min_size
 
-def get_autoscaling_group(tags):
+def get_autoscaling_group(deployment_group):
     client = boto3.client('autoscaling')
-    filter = list();
-    for key, value in tags.items():
-        filter.extend(
-            [
-                { 'Name': "key", 'Values': [ key ] },
-                { 'Name': "value", 'Values': [ value ] }
+    filter = list(
+        [
+            { 'Name': "key", 'Values': [ 'AutomatedASGScript '] },
+            { 'Name': "value", 'Values': [ 'true' ] },
+            { 'Name': "key", 'Values': [ 'DeploymentGroup' ] },
+            { 'Name': "value", 'Values': [ deployment_group ] }
             ]
-        )
+        );
+
     response = client.describe_tags(Filters=filter)
-    return response['Tags'][0]['ResourceId']
+    print(response)
+    if not response['Tags']:
+        print('Found no Autoscaling Group for Deployment Group %s - exiting' % deployment_group)
+        exit(1);
+    else:
+        print('Found Autoscaling Group for Deployment Group %s' % deployment_group)
+        return response['Tags'][0]['ResourceId']
+
 
 def suspend_processes( autoscaling_group_name, processes_to_suspend ):
     response = autoscaling.suspend_processes(
@@ -70,10 +77,11 @@ def resume_processes( autoscaling_group_name, processes_to_suspend ):
         return False
 
 def autoscale(event, context):
-    autoscaling_group_name = get_autoscaling_group(ASG_TAGS)
-
+    message = json.dumps(event['Records'][0]['Sns']['Message'])
+    message = json.loads(message)
+    deployment_group = message['deploymentGroupName']
+    autoscaling_group_name = get_autoscaling_group(deployment_group)
     asg_min_size = get_asg_min_size(autoscaling_group_name)
-
     print("Found ASG %s with min. size of %s instances" % (autoscaling_group_name, asg_min_size))
 
     topic_arn = event['Records'][0]['Sns']['TopicArn']
