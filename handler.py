@@ -27,8 +27,13 @@ def get_asg_min_size(autoscaling_group):
         AutoScalingGroupNames=
         [ autoscaling_group ]
     )
-    asg_min_size = int(response['AutoScalingGroups'][0]['MinSize'])
-    return asg_min_size
+    for i in response['AutoScalingGroups'][0]['Tags']:
+        print(i)
+        if "ASGMinSize" in i['Key']:
+            print("Found ASGMinSize Tag, setting given Value")
+            asg_min_size = int(i['Value'])
+            return asg_min_size
+
 
 def get_autoscaling_group(deployment_group):
     client = boto3.client('autoscaling')
