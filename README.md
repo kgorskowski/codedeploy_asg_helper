@@ -15,7 +15,7 @@ For easier deployment I really like the [Serverless Framework](https://serverles
 If you want to try it out, you can either just take the code or clone/fork this repository and change it to fit your needs.
 
 For deployment with Serverless, clone the repo, enter the correct AWS region in the `serverless.yaml` and deploy the function with `serverless deploy`.
-To control an Autoscaling Group with this Lambda function, it must have two Tags. `AutomatedASGScript` must be set to `true` and you need to add a key named `DeploymentGroup` with the corresponding name of the DeploymentGroup the ASG is associated to.
+To control an Autoscaling Group with this Lambda function, it must have three Tags. `AutomatedASGScript` must be set to `true` and you need to add a key named `DeploymentGroup` with the corresponding name of the DeploymentGroup the ASG is associated to. To reset to a desired minimal instance count in case a Deployment fails and the scripts do not reset the value, add the `ASGMinSize` Tag to the group. The Lambda searches the Tag and resets the min size of the Autoscaling Group to the given Value of the Tag.
 
 Anyways, if this is sufficient for you, create the Tags on your Autoscaling Group and the autoscaling operations will be suspended and resumed by Lambda.
 
