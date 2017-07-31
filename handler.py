@@ -33,6 +33,8 @@ def get_asg_min_size(autoscaling_group):
             print("Found ASGMinSize Tag, setting given Value")
             asg_min_size = int(i['Value'])
             return asg_min_size
+        else:
+            return False
 
 
 def get_autoscaling_group(deployment_group):
@@ -87,7 +89,10 @@ def autoscale(event, context):
     deployment_group = message['deploymentGroupName']
     autoscaling_group_name = get_autoscaling_group(deployment_group)
     asg_min_size = get_asg_min_size(autoscaling_group_name)
-    print("Found ASG %s with min. size of %s instances" % (autoscaling_group_name, asg_min_size))
+    if not asg_min_size:
+        print("Found no ASGMinSize Tag for %s" % autoscaling_group_name)
+    else:
+        print("Found ASG %s with min. size of %s instances" % (autoscaling_group_name, asg_min_size))
 
     topic_arn = event['Records'][0]['Sns']['TopicArn']
     print('Got Message from %s' % topic_arn)
@@ -104,7 +109,8 @@ def autoscale(event, context):
         }
 
     elif "resumeAutoscaling" in topic_arn:
-        update_autoscaling_group(autoscaling_group_name, asg_min_size)
+        if asg_min_size:
+            update_autoscaling_group(autoscaling_group_name, asg_min_size)
 
         item = resume_processes(autoscaling_group_name, processes_to_suspend)
         body = {
