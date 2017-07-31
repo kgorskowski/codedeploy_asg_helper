@@ -84,9 +84,9 @@ def resume_processes( autoscaling_group_name, processes_to_suspend ):
         return False
 
 def autoscale(event, context):
-    message = json.dumps(event['Records'][0]['Sns']['Message'])
-    message = json.loads(message)
-    deployment_group = message['deploymentGroupName']
+    message_json = json.loads(event['Records'][0]['Sns']['Message'])
+    print(message_json)
+    deployment_group = message_json['deploymentGroupName']
     autoscaling_group_name = get_autoscaling_group(deployment_group)
     asg_min_size = get_asg_min_size(autoscaling_group_name)
     if not asg_min_size:
