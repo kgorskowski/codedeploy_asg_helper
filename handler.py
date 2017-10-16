@@ -21,16 +21,16 @@ def update_autoscaling_group(autoscaling_group, asg_min_size):
         print("ERROR: Unable to reset minimal size of '" + autoscaling_group_name + "'")
         return False
 
-def get_asg_min_size(autoscaling_group):
+def get_asg_min_size(asg):
     client = boto3.client('autoscaling')
     response = client.describe_auto_scaling_groups(
         AutoScalingGroupNames=
-        [ autoscaling_group ]
+        [ asg ]
     )
+    print(response)
     for i in response['AutoScalingGroups'][0]['Tags']:
         print(i)
         if "ASGMinSize" in i['Key']:
-            print("Found ASGMinSize Tag, setting given Value")
             asg_min_size = int(i['Value'])
             return asg_min_size
         else:
@@ -38,6 +38,7 @@ def get_asg_min_size(autoscaling_group):
 
 
 def get_autoscaling_group(deployment_group):
+    asg_list = []
     client = boto3.client('autoscaling')
     filter = list(
         [
@@ -54,8 +55,10 @@ def get_autoscaling_group(deployment_group):
         print('Found no Autoscaling Group for Deployment Group %s - exiting' % deployment_group)
         exit(1);
     else:
-        print('Found Autoscaling Group for Deployment Group %s' % deployment_group)
-        return response['Tags'][0]['ResourceId']
+        print('Found Autoscaling Groups for Deployment Group %s' % deployment_group)
+        for i in response['Tags']:
+            asg_list.append(i['ResourceId'])
+        return(asg_list)
 
 
 def suspend_processes( autoscaling_group_name, processes_to_suspend ):
@@ -88,42 +91,43 @@ def autoscale(event, context):
     print(message_json)
     deployment_group = message_json['deploymentGroupName']
     autoscaling_group_name = get_autoscaling_group(deployment_group)
-    asg_min_size = get_asg_min_size(autoscaling_group_name)
-    if not asg_min_size:
-        print("Found no ASGMinSize Tag for %s" % autoscaling_group_name)
-    else:
-        print("Found ASG %s with min. size of %s instances" % (autoscaling_group_name, asg_min_size))
+    deployment_group = message_json['deploymentGroupName']
+    autoscaling_group_name = get_autoscaling_group(deployment_group)
+    for i in autoscaling_group_name:
+        print(i)
+        asg_min_size = get_asg_min_size(i)
+        if not asg_min_size:
+            print("Found no ASGMinSize Tag for %s" % i)
+        else:
+            print("Found ASG %s with min. size of %s instances" % (i, asg_min_size))
 
-    topic_arn = event['Records'][0]['Sns']['TopicArn']
-    print('Got Message from %s' % topic_arn)
-    if "suspendAutoscaling" in topic_arn:
-        item = suspend_processes(autoscaling_group_name, processes_to_suspend)
-        body = {
-        "message": "Suspending Autoscaling Processes",
-            "successful": item
+        topic_arn = event['Records'][0]['Sns']['TopicArn']
+        print('Got Message from %s' % topic_arn)
+        if "suspendAutoscaling" in topic_arn:
+            item = suspend_processes(i, processes_to_suspend)
+            body = {
+                "message": "Suspending Autoscaling Processes",
+                "successful": item
+            }
+            response = {
+                "statusCode": 200,
+                "body": json.dumps(body)
+            }
 
-        }
-        response = {
-            "statusCode": 200,
-            "body": json.dumps(body)
-        }
-
-    elif "resumeAutoscaling" in topic_arn:
-        if asg_min_size:
-            update_autoscaling_group(autoscaling_group_name, asg_min_size)
-
-        item = resume_processes(autoscaling_group_name, processes_to_suspend)
-        body = {
-        "message": "Resuming Autoscaling Processes",
-            "succesful": item
-
-        }
-        response = {
-            "statusCode": 200,
-            "body": json.dumps(body)
-        }
-    else:
-        print('Recieved Message from unknown SNS Topic %s - Exiting ' % topic_arn)
-        return False
-    print(response)
+        elif "resumeAutoscaling" in topic_arn:
+            if asg_min_size:
+                update_autoscaling_group(i, asg_min_size)
+            item = resume_processes(i, processes_to_suspend)
+            body = {
+                "message": "Resuming Autoscaling Processes",
+                "succesful": item
+            }
+            response = {
+                "statusCode": 200,
+                "body": json.dumps(body)
+            }
+        else:
+            print('Recieved Message from unknown SNS Topic %s - Exiting ' % topic_arn)
+            return False
+        print("DEBUG:", response)
     return response
